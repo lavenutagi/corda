@@ -79,4 +79,8 @@ class DriverTests {
         }
     }
 
+    @Test
+    fun `nodes without network map`() {
+        // TODO
+    }
 }
