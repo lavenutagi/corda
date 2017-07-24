@@ -3,9 +3,12 @@ package net.corda.core.serialization
 import co.paralleluniverse.fibers.Suspendable
 import net.corda.core.contracts.Attachment
 import net.corda.core.crypto.SecureHash
-import net.corda.core.flows.*
+import net.corda.core.flows.FlowLogic
+import net.corda.core.flows.InitiatingFlow
 import net.corda.core.getOrThrow
 import net.corda.core.identity.Party
+import net.corda.core.internal.FetchAttachmentsFlow
+import net.corda.core.internal.FetchDataFlow
 import net.corda.core.messaging.RPCOps
 import net.corda.core.messaging.SingleMessageRecipient
 import net.corda.core.node.services.ServiceInfo
@@ -16,6 +19,7 @@ import net.corda.node.services.network.NetworkMapService
 import net.corda.node.services.persistence.NodeAttachmentService
 import net.corda.node.services.persistence.schemas.requery.AttachmentEntity
 import net.corda.node.services.statemachine.SessionInit
+import net.corda.testing.DataVendingFlow
 import net.corda.testing.node.MockNetwork
 import org.junit.After
 import org.junit.Before
@@ -84,7 +88,7 @@ class AttachmentSerializationTest {
         @Suspendable
         override fun call() {
             if (sendData) {
-                sendTransaction(client, null)
+                subFlow(DataVendingFlow(client))
             }
             receive<String>(client).unwrap { assertEquals("ping one", it) }
             sendAndReceive<String>(client, "pong").unwrap { assertEquals("ping two", it) }
@@ -135,7 +139,7 @@ class AttachmentSerializationTest {
     private class FetchAttachmentLogic(server: MockNetwork.MockNode, private val attachmentId: SecureHash) : ClientLogic(server) {
         @Suspendable
         override fun getAttachmentContent(): String {
-            val (downloadedAttachment) = subFlow(ResolveTransactionsFlow.FetchAttachmentsFlow(setOf(attachmentId), server)).downloaded
+            val (downloadedAttachment) = subFlow(FetchAttachmentsFlow(setOf(attachmentId), server)).downloaded
             send(server, FetchDataFlow.Request.End)
             communicate()
             return downloadedAttachment.extractContent()

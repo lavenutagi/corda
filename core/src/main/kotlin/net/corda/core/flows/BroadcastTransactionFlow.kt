@@ -17,16 +17,12 @@ import net.corda.core.utilities.NonEmptySet
 @InitiatingFlow
 class BroadcastTransactionFlow(val notarisedTransaction: SignedTransaction,
                                val participants: NonEmptySet<Party>) : FlowLogic<Unit>() {
-
-    data class NotifyTxRequest(override val stx: SignedTransaction) : ResolvableTransactionData.Transaction
-
     @Suspendable
     override fun call() {
         // TODO: Messaging layer should handle this broadcast for us
-        val msg = NotifyTxRequest(notarisedTransaction)
         participants.filter { it != serviceHub.myInfo.legalIdentity }.forEach { participant ->
             // SendTransactionFlow allows otherParty to access our data to resolve the transaction.
-            sendTransaction(participant, msg)
+            sendTransaction(participant, notarisedTransaction)
         }
     }
 }

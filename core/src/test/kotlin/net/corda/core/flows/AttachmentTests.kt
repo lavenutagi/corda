@@ -6,13 +6,17 @@ import net.corda.core.crypto.SecureHash
 import net.corda.core.crypto.sha256
 import net.corda.core.getOrThrow
 import net.corda.core.identity.Party
+import net.corda.core.internal.FetchAttachmentsFlow
+import net.corda.core.internal.FetchDataFlow
 import net.corda.core.messaging.SingleMessageRecipient
 import net.corda.core.node.services.ServiceInfo
+import net.corda.core.utilities.UntrustworthyData
 import net.corda.node.services.config.NodeConfiguration
 import net.corda.node.services.database.RequeryConfiguration
 import net.corda.node.services.network.NetworkMapService
 import net.corda.node.services.persistence.schemas.requery.AttachmentEntity
 import net.corda.node.services.transactions.SimpleNotaryService
+import net.corda.testing.DataVendingFlow
 import net.corda.testing.node.MockNetwork
 import net.corda.testing.node.makeTestDataSourceProperties
 import org.junit.After
@@ -154,12 +158,12 @@ class AttachmentTests {
     @InitiatingFlow
     private class InitiatingFetchAttachmentsFlow(val otherSide: Party, val hashes: Set<SecureHash>) : FlowLogic<FetchDataFlow.Result<Attachment>>() {
         @Suspendable
-        override fun call(): FetchDataFlow.Result<Attachment> = subFlow(ResolveTransactionsFlow.FetchAttachmentsFlow(hashes, otherSide))
+        override fun call(): FetchDataFlow.Result<Attachment> = subFlow(FetchAttachmentsFlow(hashes, otherSide))
     }
 
     @InitiatedBy(InitiatingFetchAttachmentsFlow::class)
     private class FetchAttachmentsResponse(val otherSide: Party) : FlowLogic<Unit>() {
         @Suspendable
-        override fun call() = subFlow(SendTransactionFlow(otherSide, null))
+        override fun call() = subFlow(DataVendingFlow(otherSide))
     }
 }

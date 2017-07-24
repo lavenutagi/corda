@@ -8,6 +8,7 @@ import net.corda.core.contracts.requireThat
 import net.corda.core.flows.*
 import net.corda.core.identity.AnonymousPartyAndPath
 import net.corda.core.identity.Party
+import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.ProgressTracker
 import net.corda.core.utilities.unwrap
 
@@ -18,9 +19,8 @@ import net.corda.core.utilities.unwrap
 class NotifyTransactionHandler(val otherParty: Party) : FlowLogic<Unit>() {
     @Suspendable
     override fun call() {
-        val request = subFlow(ReceiveTransactionFlow(BroadcastTransactionFlow.NotifyTxRequest::class.java, otherParty))
-                .unwrap { it }
-        serviceHub.recordTransactions(request.stx)
+        val stx = subFlow(ReceiveTransactionFlow(SignedTransaction::class.java, otherParty)).unwrap { it }
+        serviceHub.recordTransactions(stx)
     }
 }
 

@@ -8,6 +8,7 @@ import net.corda.core.crypto.SecureHash
 import net.corda.core.crypto.SignedData
 import net.corda.core.crypto.keys
 import net.corda.core.identity.Party
+import net.corda.core.internal.FetchDataFlow
 import net.corda.core.node.services.NotaryService
 import net.corda.core.node.services.TrustedAuthorityNotaryService
 import net.corda.core.node.services.UniquenessProvider
@@ -147,5 +148,5 @@ sealed class NotaryError {
  */
 private class SendTransactionWithRetry(otherSide: Party, stx: SignedTransaction) : SendTransactionFlow(otherSide, stx) {
     @Suspendable
-    override fun sendPayloadAndReceiveDataRequest(payload: Any?) = sendAndReceiveWithRetry<FetchDataFlow.Request>(otherSide, payload!!)
+    override fun sendPayloadAndReceiveDataRequest(otherSide: Party, payload: Any) = sendAndReceiveWithRetry<FetchDataFlow.Request>(otherSide, payload)
 }

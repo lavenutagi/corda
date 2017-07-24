@@ -13,13 +13,13 @@ import net.corda.core.utilities.unwrap
  * which is a sub class of [ResolvableTransactionData]. This flow will resolve the transaction data and return a [UntrustworthyData]
  * for further verification.
  */
-class ReceiveTransactionFlow<T : ResolvableTransactionData>(private val expectedTXClazz: Class<T>,
-                                                            private val otherSide: Party,
-                                                            private val verifySignatures: Boolean,
-                                                            private val verifyTransaction: Boolean) : FlowLogic<UntrustworthyData<T>>() {
 
-    constructor(expectedTXClazz: Class<T>, otherSide: Party) : this(expectedTXClazz, otherSide, true)
-    constructor(expectedTXClazz: Class<T>, otherSide: Party, verifySignatures: Boolean) : this(expectedTXClazz, otherSide, verifySignatures, true)
+class ReceiveTransactionFlow<out T : ResolvableTransactionData>
+@JvmOverloads
+constructor(private val expectedTXClazz: Class<T>,
+            private val otherSide: Party,
+            private val verifySignatures: Boolean = true,
+            private val verifyTransaction: Boolean = true) : FlowLogic<UntrustworthyData<T>>() {
 
     @Suspendable
     override fun call(): UntrustworthyData<T> {

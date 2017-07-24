@@ -2,6 +2,7 @@ package net.corda.core.flows
 
 import co.paralleluniverse.fibers.Suspendable
 import net.corda.core.identity.Party
+import net.corda.core.internal.FetchDataFlow
 import net.corda.core.utilities.UntrustworthyData
 import net.corda.core.utilities.unwrap
 
@@ -19,15 +20,9 @@ import net.corda.core.utilities.unwrap
  * @param otherSide the target party.
  * @param payload the message that will be sent to the [otherSide] before data vending starts.
  */
-open class SendTransactionFlow(protected val otherSide: Party, protected val data: ResolvableTransactionData?) : FlowLogic<Unit>() {
+open class SendTransactionFlow(private val otherSide: Party, private val data: ResolvableTransactionData) : FlowLogic<Unit>() {
     @Suspendable
-    protected open fun sendPayloadAndReceiveDataRequest(payload: Any?): UntrustworthyData<FetchDataFlow.Request> {
-        return if (payload != null) {
-            payload.let { sendAndReceive<FetchDataFlow.Request>(otherSide, payload) }
-        } else {
-            receive<FetchDataFlow.Request>(otherSide)
-        }
-    }
+    protected open fun sendPayloadAndReceiveDataRequest(otherSide: Party, payload: Any) = sendAndReceive<FetchDataFlow.Request>(otherSide, payload)
 
     @Suspendable
     protected open fun verifyDataRequest(dataRequest: FetchDataFlow.Request.Data) {
@@ -37,12 +32,12 @@ open class SendTransactionFlow(protected val otherSide: Party, protected val dat
     @Suspendable
     override fun call() {
         // The first payload will be the transaction data, subsequent payload will be the transaction/attachment data.
-        var payload: Any? = data
+        var payload: Any = data
         // This loop will receive [FetchDataFlow.Request] continuously until the `otherSide` has all the data they need
         // to resolve the transaction, a [FetchDataFlow.EndRequest] will be sent from the `otherSide` to indicate end of
         // data request.
         while (true) {
-            val dataRequest = sendPayloadAndReceiveDataRequest(payload).unwrap { request ->
+            val dataRequest = sendPayloadAndReceiveDataRequest(otherSide, payload).unwrap { request ->
                 when (request) {
                     is FetchDataFlow.Request.Data -> {
                         verifyDataRequest(request)
@@ -65,10 +60,10 @@ open class SendTransactionFlow(protected val otherSide: Party, protected val dat
 
 // Convenient methods for Kotlin.
 @Suspendable
-internal fun FlowLogic<*>.sendTransaction(otherSide: Party, data: ResolvableTransactionData?) = subFlow(SendTransactionFlow(otherSide, data))
+internal fun FlowLogic<*>.sendTransaction(otherSide: Party, data: ResolvableTransactionData) = subFlow(SendTransactionFlow(otherSide, data))
 
 @Suspendable
-internal inline fun <reified T : Any> FlowLogic<*>.sendTransactionAndReceive(otherSide: Party, data: ResolvableTransactionData?): UntrustworthyData<T> {
+internal inline fun <reified T : Any> FlowLogic<*>.sendTransactionAndReceive(otherSide: Party, data: ResolvableTransactionData): UntrustworthyData<T> {
     subFlow(SendTransactionFlow(otherSide, data))
     return receive(otherSide)
 }

@@ -6,7 +6,6 @@ import net.corda.core.contracts.Amount
 import net.corda.core.contracts.Issued
 import net.corda.core.contracts.TransactionType
 import net.corda.core.contracts.USD
-import net.corda.core.flows.BroadcastTransactionFlow.NotifyTxRequest
 import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.InitiatedBy
 import net.corda.core.flows.InitiatingFlow
@@ -104,7 +103,7 @@ class DataVendingServiceTests {
     @InitiatingFlow
     private class NotifyTxFlow(val otherParty: Party, val stx: SignedTransaction) : FlowLogic<Unit>() {
         @Suspendable
-        override fun call() = send(otherParty, NotifyTxRequest(stx))
+        override fun call() = send(otherParty, stx)
     }
 
     @InitiatedBy(NotifyTxFlow::class)
