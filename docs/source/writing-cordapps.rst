@@ -89,20 +89,6 @@ The fully-qualified class path of each ``WebServerPluginRegistry`` class must be
 ``net.corda.webserver.services.WebServerPluginRegistry`` file in the CorDapp's ``resources/META-INF/services`` folder. A CorDapp
 can register multiple plugins in a single ``net.corda.webserver.services.WebServerPluginRegistry`` file.
 
-Installing CorDapps
--------------------
-To run a CorDapp, its source is compiled into a JAR by running the gradle ``jar`` task. The CorDapp JAR is then added
-to a node by adding it to the node's ``<node_dir>/plugins/`` folder (where ``node_dir`` is the folder in which the
-node's JAR and configuration files are stored).
-
-.. note:: Any external dependencies of your CorDapp will automatically be placed into the
-   ``<node_dir>/dependencies/`` folder. This will be changed in a future release.
-
-.. note:: Building nodes using the gradle ``deployNodes`` task will place the CorDapp JAR into each node's ``plugins``
-   folder automatically.
-
-At runtime, nodes will load any plugins present in their ``plugins`` folder.
-
 RPC permissions
 ---------------
 If a node's owner needs to interact with their node via RPC (e.g. to read the contents of the node's storage), they
