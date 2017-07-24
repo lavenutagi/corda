@@ -5,6 +5,7 @@ import net.corda.core.crypto.SecureHash
 import net.corda.core.identity.Party
 import net.corda.core.internal.castIfPossible
 import net.corda.core.serialization.CordaSerializable
+import net.corda.core.utilities.OpaqueBytes
 import java.security.PublicKey
 import java.util.*
 import java.util.function.Predicate
@@ -37,7 +38,8 @@ class LedgerTransaction(
         notary: Party?,
         signers: List<PublicKey>,
         timeWindow: TimeWindow?,
-        type: TransactionType
+        type: TransactionType,
+        val privacySalt: OpaqueBytes
 ) : BaseTransaction(inputs, outputs, notary, signers, type, timeWindow) {
     //DOCEND 1
     init {

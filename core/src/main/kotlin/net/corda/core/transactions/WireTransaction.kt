@@ -1,13 +1,12 @@
 package net.corda.core.transactions
 
 import net.corda.core.contracts.*
-import net.corda.core.crypto.DigitalSignature
-import net.corda.core.crypto.MerkleTree
-import net.corda.core.crypto.SecureHash
-import net.corda.core.crypto.keys
+import net.corda.core.crypto.*
 import net.corda.core.identity.Party
 import net.corda.core.internal.Emoji
 import net.corda.core.node.ServicesForResolution
+import net.corda.core.utilities.OpaqueBytes
+import java.nio.ByteBuffer
 import java.security.PublicKey
 import java.security.SignatureException
 import java.util.function.Predicate
@@ -28,7 +27,18 @@ class WireTransaction(
         notary: Party?,
         signers: List<PublicKey>,
         type: TransactionType,
-        timeWindow: TimeWindow?
+        timeWindow: TimeWindow?,
+        /**
+         * For privacy purposes, each part of a transaction should be accompanied by a nonce.
+         * To avoid storing a random number (nonce) per component, an initial "salt" is the sole value utilised,
+         * so that all component nonces are deterministically computed in the following way:
+         * nonce1 = H(salt || 1)
+         * nonce2 = H(salt || 2)
+         *
+         * Thus, all of the nonces are "independent" in the sense that knowing one or some of them, you can learn
+         * nothing about the rest.
+         */
+        @JvmField val privacySalt: OpaqueBytes = OpaqueBytes(newSecureRandom().generateSeed(32))
 ) : BaseTransaction(inputs, outputs, notary, signers, type, timeWindow), TraversableTransaction {
     init {
         checkInvariants()
@@ -76,7 +86,7 @@ class WireTransaction(
         val resolvedInputs = inputs.map { ref ->
             resolveStateRef(ref)?.let { StateAndRef(it, ref) } ?: throw TransactionResolutionException(ref.txhash)
         }
-        return LedgerTransaction(resolvedInputs, outputs, authenticatedArgs, attachments, id, notary, mustSign, timeWindow, type)
+        return LedgerTransaction(resolvedInputs, outputs, authenticatedArgs, attachments, id, notary, mustSign, timeWindow, type, privacySalt)
     }
 
     /**
@@ -86,10 +96,21 @@ class WireTransaction(
         return FilteredTransaction.buildMerkleTransaction(this, filtering)
     }
 
+    private fun saltedLeavesHashes(): List<SecureHash> {
+        val componentsAndSalts = mutableListOf<SecureHash>()
+        availableComponentHashes.indices.forEach { index ->
+            componentsAndSalts.add(availableComponentHashes[index])
+            // Add nonce for k-th component as SHA256(privacySalt || k-index.bytes).
+            componentsAndSalts.add((privacySalt.bytes + ByteBuffer.allocate(4).putInt(index).array()).sha256())
+        }
+        componentsAndSalts.add(privacySalt.sha256())
+        return componentsAndSalts
+    }
+
     /**
      * Builds whole Merkle tree for a transaction.
      */
-    val merkleTree: MerkleTree by lazy { MerkleTree.getMerkleTree(availableComponentHashes) }
+    val merkleTree: MerkleTree by lazy { MerkleTree.getMerkleTree(saltedLeavesHashes()) }
 
     /**
      * Construction of partial transaction from WireTransaction based on filtering.
@@ -106,7 +127,8 @@ class WireTransaction(
                 notNullFalse(notary) as Party?,
                 mustSign.filter { filtering.test(it) },
                 notNullFalse(type) as TransactionType?,
-                notNullFalse(timeWindow) as TimeWindow?
+                notNullFalse(timeWindow) as TimeWindow?,
+                notNullFalse(privacySalt) as OpaqueBytes?
         )
     }
 

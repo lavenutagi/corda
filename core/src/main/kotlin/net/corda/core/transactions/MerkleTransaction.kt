@@ -9,6 +9,7 @@ import net.corda.core.identity.Party
 import net.corda.core.serialization.CordaSerializable
 import net.corda.core.serialization.SerializationDefaults.P2P_CONTEXT
 import net.corda.core.serialization.serialize
+import net.corda.core.utilities.OpaqueBytes
 import java.security.PublicKey
 import java.util.function.Predicate
 
@@ -81,7 +82,8 @@ class FilteredLeaves(
         override val notary: Party?,
         override val mustSign: List<PublicKey>,
         override val type: TransactionType?,
-        override val timeWindow: TimeWindow?
+        override val timeWindow: TimeWindow?,
+        val privacySalt: OpaqueBytes?
 ) : TraversableTransaction {
     /**
      * Function that checks the whole filtered structure.
